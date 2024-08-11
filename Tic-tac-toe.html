@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: rgb(255, 94, 0);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .form-container input, .form-container button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .form-container input {
+            width: 200px;
+        }
+
+        .form-container button {
+            background-color: rgb(255, 94, 0);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: rgb(255, 120, 0);
+        }
+
+        .player-info {
+            text-align: left;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #111;
+            border: 2px solid rgb(254, 255, 254);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            color: transparent;
+            text-shadow: 0 0 10px #0f0;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { background-color: #111; }
+            50% { background-color: #222; }
+            100% { background-color: #111; }
+        }
+
+        @keyframes glowX {
+            0% { color: #0f0; }
+            50% { color: #0ff; }
+            100% { color: #0f0; }
+        }
+
+        @keyframes glowO {
+            0% { color: #f0f; }
+            50% { color: #ff0; }
+            100% { color: #f0f; }
+        }
+
+        .cell.x {
+            animation: glowX 1.5s infinite;
+        }
+
+        .cell.o {
+            animation: glowO 1.5s infinite;
+        }
+
+        .results {
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+            margin-top: 20px;
+        }
+
+        .game-area {
+            display: none;
+            position: relative;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .modal-content {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: #fff;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            margin: 0;
+        }
+
+        .modal button {
+            margin-top: 20px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: rgb(255, 94, 0);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .modal button:hover {
+            background-color: rgb(255, 120, 0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h1>Tic-Tac-Toe</h1>
+            <form id="game-form">
+                <input type="text" id="player1" placeholder="Enter Player 1 (X)" required>
+                <input type="text" id="player2" placeholder="Enter Player 2 (O)" required>
+                <input type="number" id="totalMatches" placeholder="Number of Matches" min="1" required>
+                <button type="submit">Start Game</button>
+            </form>
+            <div class="player-info">
+                <p id="player1Name"></p>
+                <p id="player2Name"></p>
+            </div>
+        </div>
+        <div class="game-area">
+            <canvas id="confettiCanvas"></canvas>
+            <div class="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+            <div class="results"></div>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div id="winnerModal" class="modal">
+        <div class="modal-content">
+            <h2 id="winnerMessage"></h2>
+            <button id="closeModal">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d');
+        const modal = document.getElementById('winnerModal');
+        const winnerMessage = document.getElementById('winnerMessage');
+        const closeModal = document.getElementById('closeModal');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createConfetti() {
+            const colors = ['#ff0', '#0f0', '#f00', '#0ff', '#f0f'];
+            const confettiCount = 100;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 10 + 5;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const speed = Math.random() * 3 + 1;
+                const angle = Math.random() * 2 * Math.PI;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                setTimeout(() => {
+                    ctx.clearRect(x - size, y - size, size * 2, size * 2);
+                }, 2000);
+            }
+        }
+
+        function showWinnerModal(winner) {
+            winnerMessage.textContent = `${winner} wins! 🎉`;
+            modal.style.display = 'flex';
+            createConfetti();
+            setTimeout(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 2000);
+        }
+
+        closeModal.addEventListener('click', () => {
+            window.location.href = 'welcome.html';
+        });
+
+        document.getElementById('game-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const player1 = document.getElementById('player1').value;
+            const player2 = document.getElementById('player2').value;
+            const totalMatches = parseInt(document.getElementById('totalMatches').value, 10);
+            
+            document.getElementById('player1Name').textContent = `Player 1 (X): ${player1}`;
+            document.getElementById('player2Name').textContent = `Player 2 (O): ${player2}`;
+            
+            document.querySelector('.form-container').style.display = 'none';
+            document.querySelector('.game-area').style.display = 'block';
+
+            let currentPlayer = 'x';
+            let matchCount = 0;
+            let xWins = 0;
+            let oWins = 0;
+            let draws = 0;
+            const cells = document.querySelectorAll('.cell');
+            const resultsDiv = document.querySelector('.results');
+
+            function checkWinner() {
+                const winningCombinations = [
+                    [0, 1, 2],
+                    [3, 4, 5],
+                    [6, 7, 8],
+                    [0, 3, 6],
+                    [1, 4, 7],
+                    [2, 5, 8],
+                    [0, 4, 8],
+                    [2, 4, 6]
+                ];
+
+                for (let combination of winningCombinations) {
+                    const [a, b, c] = combination;
+                    if (cells[a].classList.contains(currentPlayer) &&
+                        cells[b].classList.contains(currentPlayer) &&
+                        cells[c].classList.contains(currentPlayer)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function checkDraw() {
+                return [...cells].every(cell => cell.classList.contains('x') || cell.classList.contains('o'));
+            }
+
+            function resetBoard() {
+                cells.forEach(cell => {
+                    cell.classList.remove('x', 'o');
+                    cell.textContent = ''; // Clear cell content
+                });
+            }
+
+            function updateResults() {
+                resultsDiv.innerHTML = `
+                    <p style="text-align:center">Matches Played: ${matchCount}</p>
+                    <p style="text-align:center">${player1} (X) Wins: ${xWins}</p>
+                    <p style="text-align:center">${player2} (O) Wins: ${oWins}</p>
+                    <p style="text-align:center">Draws: ${draws}</p>
+                `;
+            }
+
+            function endGame() {
+                if (matchCount >= totalMatches) {
+                    alert("Game over! Final results:");
+                    updateResults();
+                    return true;
+                }
+                return false;
+            }
+
+            cells.forEach(cell => {
+                cell.addEventListener('click', () => {
+                    if (!cell.classList.contains('x') && !cell.classList.contains('o')) {
+                        cell.classList.add(currentPlayer);
+                        cell.textContent = currentPlayer.toUpperCase(); // Display X or O
+                        
+                        if (checkWinner()) {
+                            showWinnerModal(currentPlayer === 'x' ? player1 : player2);
+                            currentPlayer === 'x' ? xWins++ : oWins++;
+                            matchCount++;
+                            if (endGame()) return;
+                            resetBoard();
+                        } else if (checkDraw()) {
+                            alert("It's a draw!");
+                            draws++;
+                            matchCount++;
+                            if (endGame()) return;
+                            resetBoard();
+                        } else {
+                            currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+                        }
+
+                        updateResults();
+                    }
+                });
+            });
+
+            updateResults(); // Initial update
+        });
+
+        document.querySelector('.game-area').style.display = 'none';
+    </script>
+</body>
+</html>
